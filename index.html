@@ -3,23 +3,61 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hello World</title>
+    <title>zeno blaas</title>
     <style>
+      html,
       body {
         margin: 0;
+        padding: 0;
+        height: 100%;
         background: #000;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
       }
-      h1 {
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #text {
+        font-family: Menlo, Monaco, monospace;
         color: #7cff00;
-        font-family: Menlo, monospace;
+        font-size: 12pt;
+        white-space: pre;
+        background: none;
+        border: none;
+        cursor: pointer;
+        text-align: left;
+        line-height: 1.6;
+        padding: 0;
+      }
+      #text:hover {
+        font-style: italic;
+      }
+      #text.contact {
+        font-size: 7pt;
       }
     </style>
   </head>
   <body>
-    <h1>hello world</h1>
+    <button id="text">zeno blaas</button>
+    <script>
+      const button = document.getElementById("text");
+      const defaultText = "zeno blaas";
+      const contactText =
+        "adr.:\therzogstra\u00dfe 98, 80796 M\u00fcnchen\n" +
+        "tel.:\t+39 371 121 4528\n" +
+        "mail:\tzeno.blaas@proton.me";
+      let showingContact = false;
+
+      button.addEventListener("click", () => {
+        showingContact = !showingContact;
+        if (showingContact) {
+          button.textContent = contactText;
+          button.classList.add("contact");
+        } else {
+          button.textContent = defaultText;
+          button.classList.remove("contact");
+        }
+      });
+    </script>
   </body>
 </html>
