@@ -35,15 +35,31 @@
       #text.contact {
         font-size: 7pt;
       }
+      #photo {
+        position: fixed;
+        display: none;
+        cursor: pointer;
+        z-index: 10;
+      }
     </style>
   </head>
   <body>
     <button id="text">zeno blaas</button>
+    <img id="photo" alt="" draggable="false" />
     <script>
       const button = document.getElementById("text");
+      const photo = document.getElementById("photo");
+
+      // Randomly pick one of "00_img/img_1.jpg", "00_img/img_2.jpg", ...
+      // Set the count below to how many images the folder contains.
+      const IMG_COUNT = 5;
+      function randomImage() {
+        const n = 1 + Math.floor(Math.random() * IMG_COUNT);
+        return "00_img/img_" + n + ".jpg";
+      }
       const defaultText = "zeno blaas";
       const contactText =
-        "adr.:\therzogstra\u00dfe 98, 80796 M\u00fcnchen\n" +
+        "adr.:\tm\u00fcnchen\n" +
         "tel.:\t+39 371 121 4528\n" +
         "mail:\tzeno.blaas@proton.me";
       let showingContact = false;
@@ -57,6 +73,23 @@
           button.textContent = defaultText;
           button.classList.remove("contact");
         }
+      });
+
+      document.addEventListener("click", (event) => {
+        if (event.target === button || button.contains(event.target)) return;
+        if (event.target === photo) {
+          photo.style.display = "none";
+          return;
+        }
+        // Position the JPG with the cursor position as its origin (top-left corner)
+        photo.src = randomImage();
+        // Downscale the image to 10% of its original size
+        photo.onload = () => {
+          photo.style.width = photo.naturalWidth * 0.1 + "px";
+        };
+        photo.style.left = event.clientX + "px";
+        photo.style.top = event.clientY + "px";
+        photo.style.display = "block";
       });
     </script>
   </body>
