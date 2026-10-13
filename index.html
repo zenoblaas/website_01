@@ -48,8 +48,8 @@
       }
       #clear {
         position: fixed;
-        left: 0;
-        bottom: 0;
+        left: 10pt;
+        bottom: 10pt;
         font-family: Menlo, Monaco, monospace;
         font-size: 7pt;
         color: #fff;
@@ -63,7 +63,7 @@
   </head>
   <body>
     <button id="text">zeno blaas</button>
-    <button id="clear">clear</button>
+    <button id="clear">[clear]</button>
     <script>
       const button = document.getElementById("text");
       const clearButton = document.getElementById("clear");
@@ -74,22 +74,32 @@
       const IMG_PATH = "00_img/img_";
 
       // ---- Non-repeating random pool ----
-      // Every image is shown exactly once before any repeats.
-      // Once all images are on screen, the oldest one vanishes
-      // and a new image appears at the next click.
-      let queue = [];
-      function refillQueue() {
-        queue = [];
-        for (let i = 1; i <= IMG_COUNT; i++) queue.push(i);
-        // Fisher-Yates shuffle
-        for (let i = queue.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [queue[i], queue[j]] = [queue[j], queue[i]];
-        }
+      // A picture is never on screen twice at the same time.
+      // While not all images are shown, each click picks a random image
+      // that is not currently displayed. Once every image is on screen,
+      // the next click removes the oldest and reuses that exact image
+      // at the click position.
+      function indexFromSrc(src) {
+        const m = src.match(/img_(\d+)\.jpg/);
+        return m ? parseInt(m[1], 10) : null;
+      }
+      function displayedIndices() {
+        return photos
+          .map((img) => indexFromSrc(img.src))
+          .filter((n) => n !== null);
       }
       function nextImage() {
-        if (queue.length === 0) refillQueue();
-        return IMG_PATH + queue.shift() + ".jpg";
+        const shown = new Set(displayedIndices());
+        const available = [];
+        for (let i = 1; i <= IMG_COUNT; i++) {
+          if (!shown.has(i)) available.push(i);
+        }
+        // Fisher-Yates shuffle of the not-currently-shown images
+        for (let i = available.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [available[i], available[j]] = [available[j], available[i]];
+        }
+        return IMG_PATH + available[0] + ".jpg";
       }
 
       const defaultText = "zeno blaas";
@@ -114,16 +124,22 @@
         event.stopPropagation();
         photos.forEach((img) => img.remove());
         photos = [];
-        queue = []; // so the pool restarts fresh after clearing
+        // pool is derived from what is on screen, so it restarts fresh
       });
 
       // ---- Spawned photos ----
       let photos = []; // oldest first
 
       function spawnPhoto(x, y) {
-        // If all images are already on screen, the oldest vanishes
+        let src;
         if (photos.length >= IMG_COUNT) {
-          photos.shift().remove();
+          // All images are on screen: the oldest vanishes and that
+          // exact image reappears at the click position
+          const oldest = photos.shift();
+          src = oldest.src;
+          oldest.remove();
+        } else {
+          src = nextImage();
         }
         const img = document.createElement("img");
         img.className = "photo";
