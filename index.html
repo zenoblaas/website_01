@@ -16,6 +16,8 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12'><circle cx='6' cy='6' r='6' fill='%23ff5c00'/></svg>") 6 6,
+          auto;
       }
       #text {
         font-family: Menlo, Monaco, monospace;
@@ -24,7 +26,7 @@
         white-space: pre;
         background: none;
         border: none;
-        cursor: pointer;
+        cursor: inherit;
         text-align: left;
         line-height: 1.6;
         padding: 0;
@@ -38,11 +40,8 @@
       #photo {
         position: fixed;
         display: none;
-        cursor: grab;
+        cursor: inherit;
         z-index: 10;
-      }
-      #photo.dragging {
-        cursor: grabbing;
       }
     </style>
   </head>
