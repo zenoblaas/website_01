@@ -38,8 +38,11 @@
       #photo {
         position: fixed;
         display: none;
-        cursor: pointer;
+        cursor: grab;
         z-index: 10;
+      }
+      #photo.dragging {
+        cursor: grabbing;
       }
     </style>
   </head>
@@ -55,11 +58,11 @@
       const IMG_COUNT = 5;
       function randomImage() {
         const n = 1 + Math.floor(Math.random() * IMG_COUNT);
-        return "00_img/img_" + n + ".jpg";
+        return "01_img/img_" + n + ".jpg";
       }
       const defaultText = "zeno blaas";
       const contactText =
-        "adr.:\tm\u00fcnchen\n" +
+        "adr.:\therzogstra\u00dfe 98, 80796 M\u00fcnchen\n" +
         "tel.:\t+39 371 121 4528\n" +
         "mail:\tzeno.blaas@proton.me";
       let showingContact = false;
@@ -75,12 +78,50 @@
         }
       });
 
+      // ---- Dragging ----
+      let dragging = false;
+      let dragOffsetX = 0;
+      let dragOffsetY = 0;
+      let didDrag = false;
+
+      photo.addEventListener("mousedown", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        dragging = true;
+        didDrag = false;
+        dragOffsetX = event.clientX - photo.offsetLeft;
+        dragOffsetY = event.clientY - photo.offsetTop;
+        photo.classList.add("dragging");
+      });
+
+      document.addEventListener("mousemove", (event) => {
+        if (!dragging) return;
+        const dx = event.clientX - dragOffsetX - photo.offsetLeft;
+        const dy = event.clientY - dragOffsetY - photo.offsetTop;
+        if (Math.abs(dx) + Math.abs(dy) > 0) didDrag = true;
+        photo.style.left = event.clientX - dragOffsetX + "px";
+        photo.style.top = event.clientY - dragOffsetY + "px";
+      });
+
+      document.addEventListener("mouseup", () => {
+        if (!dragging) return;
+        dragging = false;
+        photo.classList.remove("dragging");
+        // Suppress the click that follows a drag so the image isn't closed
+        setTimeout(() => {
+          didDrag = false;
+        }, 0);
+      });
+
+      photo.addEventListener("click", (event) => {
+        event.stopPropagation();
+        if (didDrag) return; // keep the photo open after dragging
+        photo.style.display = "none";
+      });
+
       document.addEventListener("click", (event) => {
         if (event.target === button || button.contains(event.target)) return;
-        if (event.target === photo) {
-          photo.style.display = "none";
-          return;
-        }
+        if (event.target === photo) return;
         // Position the JPG with the cursor position as its origin (top-left corner)
         photo.src = randomImage();
         // Downscale the image to 10% of its original size
