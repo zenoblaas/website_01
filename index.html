@@ -37,28 +37,61 @@
       #text.contact {
         font-size: 7pt;
       }
-      #photo {
+      .photo {
         position: fixed;
-        display: none;
         cursor: inherit;
         z-index: 10;
+        user-select: none;
+      }
+      #clear:hover {
+        font-style: italic;
+      }
+      #clear {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        font-family: Menlo, Monaco, monospace;
+        font-size: 7pt;
+        color: #7cff00;
+        background: none;
+        border: none;
+        cursor: inherit;
+        padding: 4px;
+        z-index: 20;
       }
     </style>
   </head>
   <body>
     <button id="text">zeno blaas</button>
-    <img id="photo" alt="" draggable="false" />
+    <button id="clear">clear</button>
     <script>
       const button = document.getElementById("text");
-      const photo = document.getElementById("photo");
+      const clearButton = document.getElementById("clear");
 
       // Randomly pick one of "00_img/img_1.jpg", "00_img/img_2.jpg", ...
       // Set the count below to how many images the folder contains.
       const IMG_COUNT = 5;
-      function randomImage() {
-        const n = 1 + Math.floor(Math.random() * IMG_COUNT);
-        return "00_img/img_" + n + ".jpg";
+      const IMG_PATH = "01_img/img_";
+
+      // ---- Non-repeating random pool ----
+      // Every image is shown exactly once before any repeats.
+      // Once all images are on screen, the oldest one vanishes
+      // and a new image appears at the next click.
+      let queue = [];
+      function refillQueue() {
+        queue = [];
+        for (let i = 1; i <= IMG_COUNT; i++) queue.push(i);
+        // Fisher-Yates shuffle
+        for (let i = queue.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [queue[i], queue[j]] = [queue[j], queue[i]];
+        }
       }
+      function nextImage() {
+        if (queue.length === 0) refillQueue();
+        return IMG_PATH + queue.shift() + ".jpg";
+      }
+
       const defaultText = "zeno blaas";
       const contactText =
         "adr.:\tM\u00fcnchen\n" +
@@ -77,59 +110,86 @@
         }
       });
 
+      clearButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        photos.forEach((img) => img.remove());
+        photos = [];
+        queue = []; // so the pool restarts fresh after clearing
+      });
+
+      // ---- Spawned photos ----
+      let photos = []; // oldest first
+
+      function spawnPhoto(x, y) {
+        // If all images are already on screen, the oldest vanishes
+        if (photos.length >= IMG_COUNT) {
+          photos.shift().remove();
+        }
+        const img = document.createElement("img");
+        img.className = "photo";
+        img.alt = "";
+        img.draggable = false;
+        img.src = nextImage();
+        // Downscale the image to 10% of its original size
+        img.onload = () => {
+          img.style.width = img.naturalWidth * 0.1 + "px";
+        };
+        img.style.left = x + "px";
+        img.style.top = y + "px";
+        document.body.appendChild(img);
+        photos.push(img);
+        makeDraggable(img);
+      }
+
       // ---- Dragging ----
-      let dragging = false;
-      let dragOffsetX = 0;
-      let dragOffsetY = 0;
-      let didDrag = false;
+      function makeDraggable(photo) {
+        let dragging = false;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+        let didDrag = false;
 
-      photo.addEventListener("mousedown", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        dragging = true;
-        didDrag = false;
-        dragOffsetX = event.clientX - photo.offsetLeft;
-        dragOffsetY = event.clientY - photo.offsetTop;
-        photo.classList.add("dragging");
-      });
-
-      document.addEventListener("mousemove", (event) => {
-        if (!dragging) return;
-        const dx = event.clientX - dragOffsetX - photo.offsetLeft;
-        const dy = event.clientY - dragOffsetY - photo.offsetTop;
-        if (Math.abs(dx) + Math.abs(dy) > 0) didDrag = true;
-        photo.style.left = event.clientX - dragOffsetX + "px";
-        photo.style.top = event.clientY - dragOffsetY + "px";
-      });
-
-      document.addEventListener("mouseup", () => {
-        if (!dragging) return;
-        dragging = false;
-        photo.classList.remove("dragging");
-        // Suppress the click that follows a drag so the image isn't closed
-        setTimeout(() => {
+        photo.addEventListener("mousedown", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          dragging = true;
           didDrag = false;
-        }, 0);
-      });
+          dragOffsetX = event.clientX - photo.offsetLeft;
+          dragOffsetY = event.clientY - photo.offsetTop;
+        });
 
-      photo.addEventListener("click", (event) => {
-        event.stopPropagation();
-        if (didDrag) return; // keep the photo open after dragging
-        photo.style.display = "none";
-      });
+        document.addEventListener("mousemove", (event) => {
+          if (!dragging) return;
+          photo.style.left = event.clientX - dragOffsetX + "px";
+          photo.style.top = event.clientY - dragOffsetY + "px";
+          didDrag = true;
+        });
+
+        document.addEventListener("mouseup", () => {
+          if (!dragging) return;
+          dragging = false;
+          // Suppress the click that follows a drag
+          setTimeout(() => {
+            didDrag = false;
+          }, 0);
+        });
+
+        photo.addEventListener("click", (event) => {
+          event.stopPropagation();
+          if (didDrag) return;
+          // Remove this photo and free its image for the pool
+          const index = photos.indexOf(photo);
+          if (index !== -1) photos.splice(index, 1);
+          photo.remove();
+        });
+      }
 
       document.addEventListener("click", (event) => {
         if (event.target === button || button.contains(event.target)) return;
-        if (event.target === photo) return;
+        if (event.target === clearButton) return;
+        if (event.target.classList && event.target.classList.contains("photo"))
+          return;
         // Position the JPG with the cursor position as its origin (top-left corner)
-        photo.src = randomImage();
-        // Downscale the image to 10% of its original size
-        photo.onload = () => {
-          photo.style.width = photo.naturalWidth * 0.1 + "px";
-        };
-        photo.style.left = event.clientX + "px";
-        photo.style.top = event.clientY + "px";
-        photo.style.display = "block";
+        spawnPhoto(event.clientX, event.clientY);
       });
     </script>
   </body>
